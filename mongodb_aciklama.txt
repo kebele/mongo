@@ -1,0 +1,209 @@
+***** MONGO DB  NOTLAR*****
+
+* doğrudan online üzerinde kuracağız, local kurmayacağız, 
+
+* boş bir node projesi oluşturalım npn init -y
+
+* express ekleyelim npm install express --save
+
+* app.js i hazırlayalım, içine express i ekleyelim ve 3000 numaralı portu dinleyelim,
+
+* mongodb yi projemize entegre etmek için mongoose a ihtiyacımız var
+
+* https://www.npmjs.com/package/mongoose gidip, 
+npm i mongoose -s ile kurup, projeye import edip adresteki docu. den bağlantı kodu yazacağız, 
+
+* mongodb web e gidip free bir cluster açacağız, her üyelik için bir tane cluster veriyor, cluster ı oluşturduktan sonta connect tıklayıp  ip ekleyip, kullanıcı ve şifre belirleyip, connect your application u seçip bize verdiği kodu kopyalayıp yine mongo da database acces kısmına gidip bi verdiği kullanıcın yetkilerini writereadany vb her şeye yetkili olup olmadığına bakacağız, daha sonra network access e gidip 0.0.0.0/0 ın ekli olup olmadığına bakacağız, değilse ekleyeceğiz, yani istediğimiz her yerden db ye ulaşalım diye, yoksa burada sadece kendi ıp adresimizide tanıtabiliriz, 
+
+* artık app.js e gidip biraz önce db den aldığımız adresi kodda ilgili yere koyuyoruz, burada password kısmına kendimiz şifremizi ekliyoruz,
+
+* eğer bir hata varsa onun için err ekleyelim, hata ve başarılı durumda console a yazacağı mesajları ekleyelim, 
+
+* projeyi çalıştıralım, node app ..... önce 3000 portun dinlendiğine dair mesajımız geldi daha sonrada mongo db ye bağlandığımız console mesajımız geldi, problem yok, 
+
+* app durduralım ctrl + c ile ve başka ekleyecğimiz paketleri ekleyelim, npm i morgan body-parser -s ile morgan ve body-parser ekleyelim, const require ile sisteme entegre edelim
+
+* app.use ile bunları kullanıma alalım, artık mongo db ye yazmak için gerekli yapıyı kuralım
+
+* models adında bir klasör yapacağız, bunun içinde mongoDb ye veri yollarken kullandığımız gerekli şema dosyaları olacak, models > pen.js (kalem mesela) içine mongoose u ekleyelim, gerekli açıklama pen.js de...
+
+* açıklamalar gerekli dosyalarda var, yapıyı durduktan sonra node app diyerek app i çalıştıralım, listen ve mongodb ye bağlanma mesajlarını aldık, şimdi postman den bir veri yollayalım,
+
+* postmande yeni bir sayfa açalım ve http://localhost:3000/api/penroute girelim, bu adres zaten bizim ayarladığımız adres post metoduynu seçiyoruz, body ye gidip göndermek istediğimiz mesajı buraya yazacağız, raw seçeceğiz, ve text değil json yollayacağımız için onu seçeceğiz ve json formatında
+{
+    "modelName" : "tombow",
+    "modelYear" : "2020"
+}
+yazdık, id yazmamıza gerek yok bunu mongoose veriyor zaten, send diyelim, bize dönen mesaj
+{
+    "success": true,
+    "savedPen": {
+        "_id": "5f900b9ec17d60243880785b",
+        "modelName": "tombow",
+        "modelYear": 2020,
+        "__v": 0
+    },
+    "message": "pen saved ..."
+}
+gelen response ok, herpsi istediğimiz gibi,
+
+* birde online db ye mongoya bakalım, clusters > collections a bakıyoruz, pens altında yolladığımız veriyi görüyoruz, verdiği _id yide görüyoruz
+
+* mongoDB de get metodu, şimdi sistemimize dotenv modulunu entegre edelim, npm i dotenv -s bununla mongodaki user ve password bilgisini alacağız ve app.js de kullanacağız, 
+
+* .env adında bir dosya oluşturacağız, içine 
+DATABASE = mongodb+srv://kebele:burus110@cluster0.pqbtn.mongodb.net/mongo-egitim?retryWrites=true&w=majority
+yaptık, app.js de 
+// dotenv yi entegre edelim
+const dotenv = require("dotenv").config(); yaptık ve 
+    mongoose.connect(process.env.DATABASE, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  useFindAndModify: false,
+  useCreateIndex: true
+}, err =>{
+    if(err){
+        console.log("err")
+    } else{
+        console.log("connected to mongoDB...")
+    }
+});
+
+haline getirdik, denemsini yapalım, problemsiz mongo ya bağlandık, 
+
+* şimdi router > pen.js e gidip try - cath blokları ekleyelim, her zaman başarılı dönüş olmaz, try cacth blokjlarının amacı hata olduğunu server ı çökermesin hatayı bize göstersin, 
+
+    router.post("penroute", async (req,res)=>{
+    try{
+        let pen = new Pen();
+        pen._id = new mongoose.Types.ObjectId();
+        pen.modelName = req.body.modelName; 
+        pen.modelYear = req.body.modelYear;
+        
+        await pen.save();
+
+        res.json({
+            success : true,
+            savedPen : pen,
+            message : "pen saved..."
+        })
+    }catch(error){
+        res.status(500).json({
+            success : false,
+            message : error.message
+        })
+    }
+})
+
+* artık get metodu, var olan elemanları mongo dan çekmek için, router > pen.js de bu seferde get tanımlayacağız
+
+router.get("/penroute/:id", async (req,res) => {
+    //:id dememizin sebebi ne gelirse almayı kabul ediyoruz
+    try {
+        let pen = await Pen.findById({_id : req.params.id});
+
+        res.json({
+            success : true,
+            foundPen : pen,
+            message : "pen found..."
+        })
+    }catch (error){
+        res.status(500).json({
+            success : false,
+            message : error.message
+        })
+    }
+})
+
+* app ı çalıştıralım, node app, postmanda deneyelim, önce bir eleman yollayalım, tamam sıkıntı yok, bir tane daha yollayalım, pensan, 2021 olsun mesela, yolladık sıkıntı yok gitti, mongo db den kontrol ettik iki veride gelmiş, şimdi postmanda bir başka tab açıp get kullanalım, poısttaki adresi kopyalayıp get e yapıştırıp adresin sonuna da hangi verinin gelmesini istiyorsak ona mongoose un verdiği id yi yapıştırıyoruz
+http://localhost:3000/api/penroute/5f901b94aeef8d2f90b3d959 deyip send dediik pentel olan veri geldi, mongo dan da kontrolunu yaptık sıkıntı yok,
+
+* put ve delete metodları, router.delete .... ekledik, get in aynısı gibi findbyIdAndDelete kullanıyoruz bu sefer, gerekli kısımları dğüzenleyip, app ı çalıştırıp postman da bu sefer delete olarak send yapıyoruz getteki adrese, başarılı istediğimiz veri silindi, 
+
+* bu noktada mongo DB nin compass pro. indirip kurarsak ve pro ya bize mongo nun verdiği linki koyarsak bununlada direkt db ya bağlanıp neler oluyor bakabiliriz, 
+
+* delete methodu aşağıda burada findByIdAndDelete yerine findbyIdAndRemove da kullanılabilir
+router.delete("/penroute/:id", async (req,res) => {
+    //:id dememizin sebebi ne gelirse almayı kabul ediyoruz
+    try {
+        let pen = await Pen.findByIdAndDelete({_id : req.params.id});
+
+        res.json({
+            success : true,
+            deletedPen : pen,
+            message : "pen deleted..."
+        })
+    }catch (error){
+        res.status(500).json({
+            success : false,
+            message : error.message
+        })
+    }
+})
+
+* put methodu, olan bir kaydı update eder, 
+
+    router.put("/penroute/:id", async (req,res)=>{
+    try{
+        let pen = await Pen.findByIdAndUpdate({_id : req.params.id},{
+            $set : {
+                modelName : req.body.modelName, 
+                modelYear : req.body.modelYear,
+            }
+        });
+        // },{upsert : true}); bu şekilde yaparsak eğer update et dediğimiz yerde böyle bir kayıt yoksa bunu kaydeder.
+        
+        res.json({
+            success : true,
+            updatedPen : pen,
+            message : "pen updated..."
+        })
+    }catch(error){
+        res.status(500).json({
+            success : false,
+            message : error.message
+        })
+    }
+})
+
+* postmanden denememizi yapalım, mercedes, 2022 diye yeni bir kayıt yolladık, post ile, kayıt mongoya gitti, şimdi yeni bir tab açıp, put ayarlayıp, adresi koyup, mercedes in id sini koyup, raw, json ayarlarını yapıp aynı postta yaptığımız gibi bu sefer BMW olarak veriyi json olarak yazıp yolluyoruz, bize dönen response eskisi ancak mongo dan kontrol ettiğimizde update i yaptığını görüyoruz volvo yolladık, bunu porsche ile değiştirdiğini görüyoruz,  
+
+* şimdi başka bir schema yapıp buradan pen.js ye referans verelim,
+models > user.js yapalım, pen.js den içindekileri kopyalayalım ve düzenleyelim, şimdi bunu models > penjs'de ekleme yapalım
+
+* router > user.js yapalım, ve gerekli düzenlemeleri models > user.js e göre yapıyoruz,
+
+* app.js e gidip önceden penRoutes şeklinde kaydettiğimiiz gibi userRoutes şeklinde kayıt ekliyoruz, app ı çalıştıralım, mongo ya bağlanınca postman e gidelim, yeni bir tab açıp userRoute kullanarak post yapacağız, http://localhost:3000/api/userroute, body, raw, json yapıp veriyi yazacağız, kayıt başarılı, 
+
+* şimdi router > pen.js e gidip post a eni kaydı da ekleyelim, 
+XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+* çoklu kayıt yollama, bunun için router > pen.js yi değiştireceğimiz için eski dosyaya penX.js dedim, düzenlemeler pen.js den devam, 
+
+* allData adında bir array yapacağız yollaytacağımız çoklu veriler bu array in içinde olacak,
+
+* node app ile app ı çalıştırdık, postman a gidelim, ve bir post yapalım ve içine allData adında bir array koyalım, mesela şu şekilde 
+    {
+    "allData": [
+        {
+            "modelName": "isco",
+            "modelYear": "1999",
+            "userById": "5f903c415f2f000ffc93a648"
+        },
+        {
+            "modelName": "varane",
+            "modelYear": "1999",
+            "userById": "5f903c415f2f000ffc93a648"
+        },
+        {
+            "modelName": "messi",
+            "modelYear": "1999",
+            "userById": "5f903c415f2f000ffc93a648"
+        }
+    ]
+}
+send dediğimizde sıkıntısız gitti, mogo dan da baktığımzda sıkıntısız çoklu verirnin geldiğini gördük, 
+
+* şimdi de çok lu get yapsın, düzenlemeyi yaptık, server ı durdurup yeniden çalıştırıp postman a gidelim bu sefer pensroute dan isterk yapacağız o da ne varsa getirecek, deneyelim, ne varsa hepsini getirdi
+
+* 
